@@ -37,7 +37,18 @@
 
 1. Supabase の **SQL Editor** を開く
 2. `supabase/schema.sql` の内容をすべてコピーして実行
-3. エラーがないことを確認
+3. 続けて `supabase/admin-schema.sql` の内容をコピーして実行(管理画面用)
+4. エラーがないことを確認
+
+### 管理者ユーザーの設定
+
+`admin-schema.sql` を実行後、管理者にしたいユーザーを admin ロールに設定:
+
+```sql
+update public.users set role = 'admin' where email = 'あなたのメール@example.com';
+```
+
+このユーザーが `/admin` にアクセスして他のユーザーを招待・管理できるようになります。
 
 ---
 

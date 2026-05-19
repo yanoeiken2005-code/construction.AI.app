@@ -31,6 +31,31 @@ export interface Document {
   created_at: string
 }
 
+export type UserRole = 'admin' | 'user'
+export type UserPlan = 'small' | 'standard'
+
+export interface AppUser {
+  id: string
+  email: string
+  company_name: string | null
+  role: UserRole
+  plan: UserPlan
+  created_at: string
+  updated_at: string
+  last_sign_in_at?: string | null
+}
+
+export interface Company {
+  company_name: string
+  plan: UserPlan
+  user_count: number
+}
+
+export const PLAN_LABELS: Record<UserPlan, string> = {
+  small: 'スモール',
+  standard: 'スタンダード',
+}
+
 export const DOCUMENT_CATEGORIES = [
   '施工図・設計書',
   '報告書',

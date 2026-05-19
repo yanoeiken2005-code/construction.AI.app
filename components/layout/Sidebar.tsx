@@ -1,8 +1,9 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { HardHat, MessageSquare, Upload, FileText, LogOut } from 'lucide-react'
+import { HardHat, MessageSquare, Upload, FileText, LogOut, Shield } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
@@ -16,6 +17,19 @@ export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/me')
+        if (res.ok) {
+          const data = await res.json()
+          if (data.profile?.role === 'admin') setIsAdmin(true)
+        }
+      } catch {}
+    })()
+  }, [])
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -55,6 +69,20 @@ export default function Sidebar() {
             {label}
           </Link>
         ))}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className={cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors mt-4 border border-amber-100',
+              pathname.startsWith('/admin')
+                ? 'bg-amber-50 text-amber-700'
+                : 'text-amber-700 bg-amber-50/40 hover:bg-amber-50'
+            )}
+          >
+            <Shield className="w-5 h-5 shrink-0" />
+            管理画面
+          </Link>
+        )}
       </nav>
 
       {/* ログアウト */}
