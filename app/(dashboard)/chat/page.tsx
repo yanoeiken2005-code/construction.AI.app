@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from 'react'
 import { ChatMessage } from '@/types'
 import MessageBubble from '@/components/chat/MessageBubble'
 import TypingIndicator from '@/components/chat/TypingIndicator'
-import { Send, Sparkles } from 'lucide-react'
+import { Send, Sparkles, Mic, MicOff } from 'lucide-react'
+import { useSpeechRecognition } from '@/lib/useSpeechRecognition'
 
 const SUGGESTIONS = [
   '騒音クレームの過去の対応事例を教えて',
@@ -19,6 +20,26 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const inputBaseRef = useRef('')
+
+  const speech = useSpeechRecognition({
+    onTranscript: (text, isFinal) => {
+      const base = inputBaseRef.current
+      const joined = base ? `${base}${text}` : text
+      setInput(joined)
+      if (isFinal) inputBaseRef.current = joined.endsWith(' ') ? joined : joined + ' '
+      requestAnimationFrame(adjustTextarea)
+    },
+  })
+
+  function toggleMic() {
+    if (speech.isListening) {
+      speech.stop()
+    } else {
+      inputBaseRef.current = input ? (input.endsWith(' ') ? input : input + ' ') : ''
+      speech.start()
+    }
+  }
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -148,12 +169,30 @@ export default function ChatPage() {
           <textarea
             ref={textareaRef}
             value={input}
-            onChange={(e) => { setInput(e.target.value); adjustTextarea() }}
+            onChange={(e) => { setInput(e.target.value); inputBaseRef.current = e.target.value; adjustTextarea() }}
             onKeyDown={handleKeyDown}
-            placeholder="質問を入力（例：去年の騒音クレームの対応方法は？）"
+            placeholder={speech.isListening ? '聞き取り中…話してください' : '質問を入力（例：去年の騒音クレームの対応方法は？）'}
             rows={1}
             className="flex-1 bg-transparent resize-none outline-none text-slate-800 placeholder:text-slate-400 text-sm leading-relaxed"
           />
+          {speech.isSupported && (
+            <button
+              onClick={toggleMic}
+              disabled={isLoading}
+              aria-label={speech.isListening ? '音声入力を停止' : '音声入力を開始'}
+              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors shrink-0 ${
+                speech.isListening
+                  ? 'bg-red-500 hover:bg-red-600 animate-pulse'
+                  : 'bg-slate-200 hover:bg-slate-300'
+              }`}
+            >
+              {speech.isListening ? (
+                <MicOff className="w-4 h-4 text-white" />
+              ) : (
+                <Mic className="w-4 h-4 text-slate-600" />
+              )}
+            </button>
+          )}
           <button
             onClick={() => sendMessage(input)}
             disabled={!input.trim() || isLoading}
@@ -163,7 +202,11 @@ export default function ChatPage() {
           </button>
         </div>
         <p className="text-xs text-slate-400 text-center mt-2">
-          Enter で送信 / Shift+Enter で改行
+          {speech.error
+            ? <span className="text-red-500">{speech.error}</span>
+            : speech.isListening
+              ? '🎤 録音中… もう一度マイクをタップで停止'
+              : 'Enter で送信 / Shift+Enter で改行' + (speech.isSupported ? ' / 🎤 で音声入力' : '')}
         </p>
       </div>
     </div>
