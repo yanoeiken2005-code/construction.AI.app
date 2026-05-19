@@ -110,7 +110,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs text-slate-400 mt-6">
-          © 2025 建設ナレッジAI
+          © 2026 建設ナレッジAI
         </p>
       </div>
     </div>
