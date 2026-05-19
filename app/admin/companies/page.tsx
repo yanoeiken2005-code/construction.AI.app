@@ -137,6 +137,10 @@ export default function AdminCompaniesPage() {
               className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <div className="flex gap-2">
+              <label className={`flex-1 text-sm text-center py-2 rounded-lg border cursor-pointer ${newPlan === 'solo' ? 'bg-blue-50 border-blue-400 text-blue-700' : 'bg-white border-slate-200 text-slate-600'}`}>
+                <input type="radio" className="hidden" checked={newPlan === 'solo'} onChange={() => setNewPlan('solo')} />
+                ソロ
+              </label>
               <label className={`flex-1 text-sm text-center py-2 rounded-lg border cursor-pointer ${newPlan === 'small' ? 'bg-blue-50 border-blue-400 text-blue-700' : 'bg-white border-slate-200 text-slate-600'}`}>
                 <input type="radio" className="hidden" checked={newPlan === 'small'} onChange={() => setNewPlan('small')} />
                 スモール
@@ -162,6 +166,7 @@ export default function AdminCompaniesPage() {
         {/* プラン早見表 */}
         <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-600">
           <p className="font-semibold text-slate-700 mb-1">プラン上限</p>
+          <p>• ソロ: {PLAN_LIMITS.solo.maxUsers}名 / 月{PLAN_LIMITS.solo.monthlyQuestions}回</p>
           <p>• スモール: {PLAN_LIMITS.small.maxUsers}名 / 月{PLAN_LIMITS.small.monthlyQuestions}回</p>
           <p>• スタンダード: {PLAN_LIMITS.standard.maxUsers}名 / 月{PLAN_LIMITS.standard.monthlyQuestions}回</p>
         </div>
@@ -197,6 +202,7 @@ export default function AdminCompaniesPage() {
                       disabled={busyId === c.id}
                       className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
+                      <option value="solo">{PLAN_LABELS.solo}</option>
                       <option value="small">{PLAN_LABELS.small}</option>
                       <option value="standard">{PLAN_LABELS.standard}</option>
                     </select>

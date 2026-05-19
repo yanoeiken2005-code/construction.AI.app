@@ -32,7 +32,7 @@ export interface Document {
 }
 
 export type UserRole = 'admin' | 'user'
-export type UserPlan = 'small' | 'standard'
+export type UserPlan = 'solo' | 'small' | 'standard'
 
 export interface AppUser {
   id: string
@@ -57,11 +57,13 @@ export interface Company {
 }
 
 export const PLAN_LABELS: Record<UserPlan, string> = {
+  solo: 'ソロ',
   small: 'スモール',
   standard: 'スタンダード',
 }
 
 export const PLAN_LIMITS: Record<UserPlan, { maxUsers: number; monthlyQuestions: number }> = {
+  solo: { maxUsers: 1, monthlyQuestions: 30 },
   small: { maxUsers: 5, monthlyQuestions: 100 },
   standard: { maxUsers: 20, monthlyQuestions: 1000 },
 }

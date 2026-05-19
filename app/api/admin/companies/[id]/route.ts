@@ -15,7 +15,7 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
 
     const update: Record<string, unknown> = {}
     if (typeof body?.name === 'string' && body.name.trim()) update.name = body.name.trim()
-    if (body?.plan === 'small' || body?.plan === 'standard') update.plan = body.plan
+    if (body?.plan === 'solo' || body?.plan === 'small' || body?.plan === 'standard') update.plan = body.plan
 
     if (Object.keys(update).length === 0) {
       return NextResponse.json({ error: '更新項目がありません' }, { status: 400 })

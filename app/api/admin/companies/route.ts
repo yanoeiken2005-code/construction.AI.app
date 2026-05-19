@@ -65,7 +65,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => null) as { name?: string; plan?: UserPlan } | null
     const name = body?.name?.trim()
     if (!name) return NextResponse.json({ error: '会社名を入力してください' }, { status: 400 })
-    const plan: UserPlan = body?.plan === 'standard' ? 'standard' : 'small'
+    const plan: UserPlan =
+      body?.plan === 'solo' || body?.plan === 'standard' || body?.plan === 'small'
+        ? body.plan
+        : 'small'
 
     const adminClient = await createAdminClient()
     const { data, error } = await adminClient
