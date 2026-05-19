@@ -72,6 +72,24 @@ create trigger users_set_updated_at
   for each row execute function public.set_updated_at();
 
 -- =============================================
+-- is_admin() ヘルパー関数
+-- RLS無限再帰を避けるため SECURITY DEFINER で定義
+-- (関数内では呼び出し側のRLSがバイパスされる)
+-- =============================================
+create or replace function public.is_admin(uid uuid default auth.uid())
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(
+    (select role = 'admin' from public.users where id = uid),
+    false
+  );
+$$;
+
+-- =============================================
 -- RLS ポリシー
 -- =============================================
 alter table public.users enable row level security;
@@ -84,23 +102,17 @@ create policy "ユーザーは自分のプロフィールを参照可能"
 drop policy if exists "管理者は全プロフィールを参照可能" on public.users;
 create policy "管理者は全プロフィールを参照可能"
   on public.users for select
-  using (
-    exists (select 1 from public.users me where me.id = auth.uid() and me.role = 'admin')
-  );
+  using (public.is_admin());
 
 drop policy if exists "管理者は全プロフィールを更新可能" on public.users;
 create policy "管理者は全プロフィールを更新可能"
   on public.users for update
-  using (
-    exists (select 1 from public.users me where me.id = auth.uid() and me.role = 'admin')
-  );
+  using (public.is_admin());
 
 drop policy if exists "管理者は全プロフィールを削除可能" on public.users;
 create policy "管理者は全プロフィールを削除可能"
   on public.users for delete
-  using (
-    exists (select 1 from public.users me where me.id = auth.uid() and me.role = 'admin')
-  );
+  using (public.is_admin());
 
 -- =============================================
 -- 初期 admin ユーザーを設定するための手順 (手動)

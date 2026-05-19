@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { HardHat, MessageSquare, Upload, FileText, LogOut, Shield } from 'lucide-react'
@@ -13,23 +12,10 @@ const navItems = [
   { href: '/documents', icon: FileText, label: 'ドキュメント一覧' },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
-  const [isAdmin, setIsAdmin] = useState(false)
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch('/api/me')
-        if (res.ok) {
-          const data = await res.json()
-          if (data.profile?.role === 'admin') setIsAdmin(true)
-        }
-      } catch {}
-    })()
-  }, [])
 
   async function handleLogout() {
     await supabase.auth.signOut()

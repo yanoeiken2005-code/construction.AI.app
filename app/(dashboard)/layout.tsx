@@ -2,17 +2,21 @@ export const dynamic = 'force-dynamic'
 
 import Sidebar from '@/components/layout/Sidebar'
 import MobileNav from '@/components/layout/MobileNav'
+import { getCurrentUserProfile } from '@/lib/admin'
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const profile = await getCurrentUserProfile()
+  const isAdmin = profile?.role === 'admin'
+
   return (
     <div className="flex h-full bg-slate-50">
       {/* デスクトップサイドバー */}
       <div className="hidden md:flex">
-        <Sidebar />
+        <Sidebar isAdmin={isAdmin} />
       </div>
 
       {/* メインコンテンツ */}
@@ -21,7 +25,7 @@ export default function DashboardLayout({
       </main>
 
       {/* モバイルボトムナビ */}
-      <MobileNav />
+      <MobileNav isAdmin={isAdmin} />
     </div>
   )
 }
