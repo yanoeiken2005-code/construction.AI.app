@@ -3,6 +3,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createAdminClient } from '@/lib/supabase/server'
 import { generateEmbedding } from '@/lib/embeddings'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUserProfile, startOfCurrentMonthIso } from '@/lib/admin'
+import { PLAN_LIMITS } from '@/types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -15,8 +17,32 @@ export async function POST(request: NextRequest) {
     const { message, history = [] } = await request.json()
     if (!message) return NextResponse.json({ error: 'メッセージが必要です' }, { status: 400 })
 
-    // クエリをベクトル化して関連ドキュメントを検索
+    // 月間質問回数の上限チェック (admin と 会社未割当ユーザーはスキップ)
     const adminClient = await createAdminClient()
+    const profile = await getCurrentUserProfile()
+    if (profile && profile.role !== 'admin' && profile.company_id && profile.company_plan) {
+      const limit = PLAN_LIMITS[profile.company_plan].monthlyQuestions
+      const { data: companyUsers } = await adminClient
+        .from('users')
+        .select('id')
+        .eq('company_id', profile.company_id)
+      const userIds = (companyUsers ?? []).map((u) => u.id)
+      if (userIds.length > 0) {
+        const { count } = await adminClient
+          .from('chat_messages')
+          .select('id', { count: 'exact', head: true })
+          .eq('role', 'user')
+          .in('user_id', userIds)
+          .gte('created_at', startOfCurrentMonthIso())
+        if ((count ?? 0) >= limit) {
+          return NextResponse.json({
+            error: `今月のAI質問回数が上限（${limit}回）に達しました。管理者にプラン変更をご相談ください。`,
+            code: 'quota_exceeded',
+          }, { status: 429 })
+        }
+      }
+    }
+
     let sources: any[] = []
 
     try {

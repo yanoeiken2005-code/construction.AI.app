@@ -2,46 +2,43 @@
 
 import { useEffect, useState } from 'react'
 import { Loader2, Mail, Trash2, UserPlus, Search } from 'lucide-react'
-import type { AppUser, UserPlan } from '@/types'
+import type { AppUser, Company } from '@/types'
 import { PLAN_LABELS } from '@/types'
 
 function formatLastSignIn(iso?: string | null): string {
   if (!iso) return '未ログイン'
   return new Date(iso).toLocaleString('ja-JP', {
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+    year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
   })
 }
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AppUser[]>([])
+  const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [showInvite, setShowInvite] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteCompany, setInviteCompany] = useState('')
-  const [invitePlan, setInvitePlan] = useState<UserPlan>('small')
   const [inviting, setInviting] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [flash, setFlash] = useState<{ type: 'ok' | 'ng'; msg: string } | null>(null)
 
-  async function fetchUsers() {
+  async function fetchAll() {
     setLoading(true)
     try {
-      const res = await fetch('/api/admin/users')
-      if (res.ok) {
-        const data = await res.json()
-        setUsers(data.users ?? [])
-      }
+      const [uRes, cRes] = await Promise.all([
+        fetch('/api/admin/users'),
+        fetch('/api/admin/companies'),
+      ])
+      if (uRes.ok) setUsers((await uRes.json()).users ?? [])
+      if (cRes.ok) setCompanies((await cRes.json()).companies ?? [])
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => { fetchUsers() }, [])
+  useEffect(() => { fetchAll() }, [])
 
   useEffect(() => {
     if (!flash) return
@@ -51,17 +48,13 @@ export default function AdminUsersPage() {
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault()
-    if (!inviteEmail.trim() || inviting) return
+    if (!inviteEmail.trim() || !inviteCompany || inviting) return
     setInviting(true)
     try {
       const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: inviteEmail.trim(),
-          company_name: inviteCompany.trim() || null,
-          plan: invitePlan,
-        }),
+        body: JSON.stringify({ email: inviteEmail.trim(), company_id: inviteCompany }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -70,9 +63,8 @@ export default function AdminUsersPage() {
         setFlash({ type: 'ok', msg: `${inviteEmail} に招待メールを送信しました` })
         setInviteEmail('')
         setInviteCompany('')
-        setInvitePlan('small')
         setShowInvite(false)
-        fetchUsers()
+        fetchAll()
       }
     } finally {
       setInviting(false)
@@ -96,20 +88,26 @@ export default function AdminUsersPage() {
     }
   }
 
-  async function handlePlanChange(u: AppUser, plan: UserPlan) {
-    if (plan === u.plan) return
+  async function handleCompanyChange(u: AppUser, companyId: string) {
+    if (companyId === u.company_id) return
     setBusyId(u.id)
     try {
       const res = await fetch(`/api/admin/users/${u.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ company_id: companyId || null }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setFlash({ type: 'ng', msg: data.error || 'プラン変更に失敗しました' })
+        setFlash({ type: 'ng', msg: data.error || '会社の変更に失敗しました' })
       } else {
-        setUsers((prev) => prev.map((x) => x.id === u.id ? { ...x, plan } : x))
+        const company = companies.find((c) => c.id === companyId)
+        setUsers((prev) => prev.map((x) => x.id === u.id ? {
+          ...x,
+          company_id: companyId || null,
+          company_name: company?.name ?? null,
+          company_plan: company?.plan ?? null,
+        } : x))
       }
     } finally {
       setBusyId(null)
@@ -129,7 +127,7 @@ export default function AdminUsersPage() {
     <div className="flex flex-col h-full overflow-y-auto">
       <div className="hidden md:block px-6 py-4 border-b border-slate-100 bg-white shrink-0">
         <h1 className="font-bold text-slate-800 text-lg">ユーザー管理</h1>
-        <p className="text-xs text-slate-400 mt-0.5">利用者の招待・削除・プラン変更を行います</p>
+        <p className="text-xs text-slate-400 mt-0.5">利用者の招待・削除・所属会社の変更を行います</p>
       </div>
 
       <div className="flex-1 px-4 md:px-6 py-6 max-w-5xl mx-auto w-full space-y-4">
@@ -156,7 +154,9 @@ export default function AdminUsersPage() {
           </div>
           <button
             onClick={() => setShowInvite((v) => !v)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shrink-0"
+            disabled={companies.length === 0}
+            title={companies.length === 0 ? '先に会社を登録してください' : '招待'}
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white text-sm font-medium rounded-xl shrink-0"
           >
             <UserPlus className="w-4 h-4" /> 招待
           </button>
@@ -173,23 +173,19 @@ export default function AdminUsersPage() {
               onChange={(e) => setInviteEmail(e.target.value)}
               className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <input
-              type="text"
-              placeholder="会社名 (任意)"
+            <select
+              required
               value={inviteCompany}
               onChange={(e) => setInviteCompany(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <div className="flex gap-2">
-              <label className={`flex-1 text-sm text-center py-2 rounded-lg border cursor-pointer ${invitePlan === 'small' ? 'bg-blue-50 border-blue-400 text-blue-700' : 'bg-white border-slate-200 text-slate-600'}`}>
-                <input type="radio" className="hidden" checked={invitePlan === 'small'} onChange={() => setInvitePlan('small')} />
-                スモール
-              </label>
-              <label className={`flex-1 text-sm text-center py-2 rounded-lg border cursor-pointer ${invitePlan === 'standard' ? 'bg-blue-50 border-blue-400 text-blue-700' : 'bg-white border-slate-200 text-slate-600'}`}>
-                <input type="radio" className="hidden" checked={invitePlan === 'standard'} onChange={() => setInvitePlan('standard')} />
-                スタンダード
-              </label>
-            </div>
+              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              <option value="">所属会社を選択...</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}（{PLAN_LABELS[c.plan]}）
+                </option>
+              ))}
+            </select>
             <div className="flex justify-end gap-2 pt-1">
               <button
                 type="button"
@@ -198,7 +194,7 @@ export default function AdminUsersPage() {
               >キャンセル</button>
               <button
                 type="submit"
-                disabled={inviting || !inviteEmail.trim()}
+                disabled={inviting || !inviteEmail.trim() || !inviteCompany}
                 className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white rounded-lg"
               >
                 {inviting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
@@ -232,9 +228,11 @@ export default function AdminUsersPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-1 flex-wrap text-xs text-slate-500">
-                    <span className="bg-slate-100 px-2 py-0.5 rounded-full">
-                      {u.company_name || '会社名未設定'}
-                    </span>
+                    {u.company_plan && (
+                      <span className="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full">
+                        {PLAN_LABELS[u.company_plan]}
+                      </span>
+                    )}
                     <span className="text-slate-400">
                       最終ログイン: {formatLastSignIn(u.last_sign_in_at)}
                     </span>
@@ -243,13 +241,15 @@ export default function AdminUsersPage() {
 
                 <div className="flex items-center gap-2 shrink-0">
                   <select
-                    value={u.plan}
-                    onChange={(e) => handlePlanChange(u, e.target.value as UserPlan)}
+                    value={u.company_id ?? ''}
+                    onChange={(e) => handleCompanyChange(u, e.target.value)}
                     disabled={busyId === u.id}
-                    className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[160px]"
                   >
-                    <option value="small">{PLAN_LABELS.small}</option>
-                    <option value="standard">{PLAN_LABELS.standard}</option>
+                    <option value="">会社未割当</option>
+                    {companies.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
                   </select>
                   <button
                     onClick={() => handleDelete(u)}

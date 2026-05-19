@@ -35,20 +35,28 @@
 
 ## A-2. Supabase データベース設定
 
-1. Supabase の **SQL Editor** を開く
-2. `supabase/schema.sql` の内容をすべてコピーして実行
-3. 続けて `supabase/admin-schema.sql` の内容をコピーして実行(管理画面用)
-4. エラーがないことを確認
+Supabase の **SQL Editor** を開き、以下を**この順番で**実行します:
+
+1. `supabase/schema.sql` (基本テーブル: documents / chat_messages)
+2. `supabase/admin-schema.sql` (public.users + RLS + is_admin関数)
+3. `supabase/companies-schema.sql` (companies テーブル + ユーザー紐付け)
 
 ### 管理者ユーザーの設定
-
-`admin-schema.sql` を実行後、管理者にしたいユーザーを admin ロールに設定:
 
 ```sql
 update public.users set role = 'admin' where email = 'あなたのメール@example.com';
 ```
 
-このユーザーが `/admin` にアクセスして他のユーザーを招待・管理できるようになります。
+このユーザーが `/admin` にアクセスして会社・ユーザーを管理できます。
+
+### プラン上限
+
+| プラン | 最大ユーザー数 | 月間AI質問回数 |
+|---|---|---|
+| スモール | 5名 | 100回 |
+| スタンダード | 20名 | 1000回 |
+
+上限は `types/index.ts` の `PLAN_LIMITS` で調整できます。月間質問数は毎月1日にリセットされ、会社単位で集計されます。
 
 ---
 

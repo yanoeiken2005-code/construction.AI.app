@@ -37,23 +37,33 @@ export type UserPlan = 'small' | 'standard'
 export interface AppUser {
   id: string
   email: string
-  company_name: string | null
   role: UserRole
-  plan: UserPlan
+  company_id: string | null
+  company_name: string | null
+  company_plan: UserPlan | null
   created_at: string
   updated_at: string
   last_sign_in_at?: string | null
 }
 
 export interface Company {
-  company_name: string
+  id: string
+  name: string
   plan: UserPlan
   user_count: number
+  monthly_questions_used: number
+  created_at: string
+  updated_at: string
 }
 
 export const PLAN_LABELS: Record<UserPlan, string> = {
   small: 'スモール',
   standard: 'スタンダード',
+}
+
+export const PLAN_LIMITS: Record<UserPlan, { maxUsers: number; monthlyQuestions: number }> = {
+  small: { maxUsers: 5, monthlyQuestions: 100 },
+  standard: { maxUsers: 20, monthlyQuestions: 1000 },
 }
 
 export const DOCUMENT_CATEGORIES = [
