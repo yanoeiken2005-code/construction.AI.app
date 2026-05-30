@@ -2,11 +2,12 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { HardHat, MessageSquare, Upload, FileText, LogOut, Shield } from 'lucide-react'
+import { HardHat, MessageSquare, Upload, FileText, LogOut, Shield, Calculator } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
 const navItems = [
+  { href: '/estimates', icon: Calculator, label: '見積もり', highlight: true },
   { href: '/chat', icon: MessageSquare, label: 'AI 検索' },
   { href: '/upload', icon: Upload, label: 'ファイル追加' },
   { href: '/documents', icon: FileText, label: 'ドキュメント一覧' },
@@ -40,21 +41,33 @@ export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
 
       {/* ナビゲーション */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map(({ href, icon: Icon, label }) => (
-          <Link
-            key={href}
-            href={href}
-            className={cn(
-              'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
-              pathname === href
-                ? 'bg-blue-50 text-blue-700'
-                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
-            )}
-          >
-            <Icon className="w-5 h-5 shrink-0" />
-            {label}
-          </Link>
-        ))}
+        {navItems.map(({ href, icon: Icon, label, highlight }) => {
+          const isActive = href === '/estimates'
+            ? pathname.startsWith('/estimates')
+            : pathname === href
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                'flex items-center gap-3 rounded-xl font-medium transition-colors',
+                highlight
+                  ? 'px-3 py-3 text-base border border-emerald-100'
+                  : 'px-3 py-2.5 text-sm',
+                isActive
+                  ? highlight
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-blue-50 text-blue-700'
+                  : highlight
+                    ? 'text-emerald-700 bg-emerald-50/40 hover:bg-emerald-50'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+              )}
+            >
+              <Icon className={cn('shrink-0', highlight ? 'w-6 h-6' : 'w-5 h-5')} />
+              {label}
+            </Link>
+          )
+        })}
         {isAdmin && (
           <Link
             href="/admin"

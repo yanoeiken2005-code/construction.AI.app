@@ -14,12 +14,32 @@ export async function POST(request: NextRequest) {
     const projectName = formData.get('projectName') as string || ''
     const category = formData.get('category') as string || 'その他'
     const documentDate = formData.get('documentDate') as string || new Date().toISOString().slice(0, 10)
+    const isSharedRequested = formData.get('isShared') === 'true'
 
     if (!file) return NextResponse.json({ error: 'ファイルが必要です' }, { status: 400 })
 
+    // isShared が要求されている場合、管理者のみ許可
+    let isShared = false
+    if (isSharedRequested) {
+      const { data: profile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle()
+      if (profile?.role !== 'admin') {
+        return NextResponse.json(
+          { error: '全社共有ナレッジへの登録は管理者のみ可能です' },
+          { status: 403 }
+        )
+      }
+      isShared = true
+    }
+
     // Supabase Storage にアップロード
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${user.id}/${Date.now()}_${file.name}`
+    // 共有ナレッジは shared/ 配下に置く（storage RLS により全ユーザー参照可）
+    const fileName = isShared
+      ? `shared/${Date.now()}_${file.name}`
+      : `${user.id}/${Date.now()}_${file.name}`
     const fileBuffer = await file.arrayBuffer()
 
     const adminClient = await createAdminClient()
@@ -66,6 +86,7 @@ export async function POST(request: NextRequest) {
         document_date: documentDate,
         category,
         embedding,
+        is_shared: isShared,
       })
       .select()
       .single()

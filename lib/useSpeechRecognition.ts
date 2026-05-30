@@ -40,6 +40,7 @@ export function useSpeechRecognition(opts: {
   const { lang = 'ja-JP', onTranscript } = opts
   const [isListening, setIsListening] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isSupported, setIsSupported] = useState(false)
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const onTranscriptRef = useRef(onTranscript)
 
@@ -47,7 +48,9 @@ export function useSpeechRecognition(opts: {
     onTranscriptRef.current = onTranscript
   }, [onTranscript])
 
-  const isSupported = getSpeechRecognition() !== null
+  useEffect(() => {
+    setIsSupported(getSpeechRecognition() !== null)
+  }, [])
 
   const start = useCallback(() => {
     const Ctor = getSpeechRecognition()

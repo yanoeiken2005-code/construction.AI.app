@@ -76,7 +76,94 @@ export const DOCUMENT_CATEGORIES = [
   '写真',
   '行政書類',
   '協力会社関連',
+  '単価表・歩掛',
   'その他',
 ] as const
 
 export type DocumentCategory = typeof DOCUMENT_CATEGORIES[number]
+
+// =============================================
+// 見積もり機能
+// =============================================
+export type EstimateStatus =
+  | 'draft'
+  | 'analyzing'
+  | 'pending_questions'
+  | 'ready'
+  | 'archived'
+
+export type EstimateWorkType = '道路' | '造成' | '混在' | 'その他'
+
+export const ESTIMATE_WORK_TYPES: EstimateWorkType[] = ['道路', '造成', '混在', 'その他']
+
+export interface EstimateDrawingFile {
+  url: string
+  name: string
+  type: string
+  size: number
+}
+
+export interface EstimatePendingQuestion {
+  id: string
+  question: string
+  hint?: string
+  answered?: boolean
+}
+
+export interface Estimate {
+  id: string
+  user_id: string
+  company_id: string | null
+  project_name: string
+  prefecture: string | null
+  work_type: EstimateWorkType
+  status: EstimateStatus
+  drawing_files: EstimateDrawingFile[]
+  pending_questions: EstimatePendingQuestion[]
+  user_answers: Record<string, string>
+  summary: string | null
+  total_amount: number | null
+  total_amount_tax_included: number | null
+  ai_notes: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+export interface EstimateItem {
+  id: string
+  estimate_id: string
+  display_order: number
+  section: string | null
+  name: string
+  spec: string | null
+  quantity: number | null
+  unit: string | null
+  unit_price: number | null
+  amount: number | null
+  source: string | null
+  confidence: '高' | '中' | '低'
+  notes: string | null
+  created_at: string
+}
+
+export interface EstimateMessage {
+  id: string
+  estimate_id: string
+  user_id: string
+  role: MessageRole
+  content: string
+  sources?: DocumentSource[]
+  created_at: string
+}
+
+export const PREFECTURES = [
+  '北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県',
+  '茨城県', '栃木県', '群馬県', '埼玉県', '千葉県', '東京都', '神奈川県',
+  '新潟県', '富山県', '石川県', '福井県', '山梨県', '長野県', '岐阜県',
+  '静岡県', '愛知県', '三重県', '滋賀県', '京都府', '大阪府', '兵庫県',
+  '奈良県', '和歌山県', '鳥取県', '島根県', '岡山県', '広島県', '山口県',
+  '徳島県', '香川県', '愛媛県', '高知県', '福岡県', '佐賀県', '長崎県',
+  '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県',
+] as const
+export type Prefecture = typeof PREFECTURES[number]
